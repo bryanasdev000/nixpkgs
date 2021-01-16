@@ -2,20 +2,20 @@
 
 buildGoModule rec {
   pname = "velero";
-  version = "1.5.2";
+  version = "1.5.3";
 
   src = fetchFromGitHub {
     rev = "v${version}";
     owner = "vmware-tanzu";
     repo = "velero";
-    sha256 = "1hfi1iipbval0c0c0nnf6fz5n76za0vwczm5lq86sddqnznbvsrz";
+    sha256 = "1pjpvkk8ff5285cv0qk4ki8ajgyy997lf11b155pzwjwkj2ak7hd";
   };
 
   buildFlagsArray = ''
     -ldflags=
       -s -w
       -X github.com/vmware-tanzu/velero/pkg/buildinfo.Version=${version}
-      -X github.com/vmware-tanzu/velero/pkg/buildinfo.GitSHA=456eb19668f8da603756353d9179b59b5a7bfa04
+      -X github.com/vmware-tanzu/velero/pkg/buildinfo.GitSHA=123109a3bcac11dbb6783d2758207bac0d0817cb
       -X github.com/vmware-tanzu/velero/pkg/buildinfo.GitTreeState=clean
   '';
 
