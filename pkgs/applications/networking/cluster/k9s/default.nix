@@ -1,14 +1,14 @@
-{ stdenv, lib, buildGoModule, fetchFromGitHub, installShellFiles, testers, k9s }:
+{ stdenv, lib, buildGoModule, fetchFromGitHub, installShellFiles, xorg, testers, k9s }:
 
 buildGoModule rec {
   pname = "k9s";
-  version = "0.26.3";
+  version = "0.26.4";
 
   src = fetchFromGitHub {
     owner  = "derailed";
     repo   = "k9s";
     rev    = "v${version}";
-    sha256 = "sha256-Czjx6YTyFKAP8ZuwBpTpRfjDdRdd8GQ0ggbe5LMb8uA=";
+    sha256 = "sha256-TIwUD0nPZp8Dw1jkLyZ4wVee0lGFdXLRs0+GvtOFgNg=";
   };
 
   ldflags = [
@@ -20,7 +20,7 @@ buildGoModule rec {
 
   tags = [ "netgo" ];
 
-  vendorSha256 = "sha256-rnROcJA4f0YjDGKEncrMmf/43VKrbgpmM3TvV1MMiWU=";
+  vendorSha256 = "sha256-/aJNLMHZnlYhwjNnFKL1ZQaqYjHStD8VrAh0D7hwnec=";
 
   # TODO investigate why some config tests are failing
   doCheck = !(stdenv.isDarwin && stdenv.isAarch64);
@@ -34,6 +34,10 @@ buildGoModule rec {
     inherit version;
   };
 
+  buildInputs = lib.optionals stdenv.isLinux [
+    xorg.libX11
+    xorg.libX11.dev
+  ];
   nativeBuildInputs = [ installShellFiles ];
   postInstall = ''
     installShellCompletion --cmd k9s \
