@@ -1,0 +1,106 @@
+diff --git a/nixos/modules/module-list.nix b/nixos/modules/module-list.nix
+index ec022713e12efb..4e268c1cb09e2f 100644
+--- a/nixos/modules/module-list.nix
++++ b/nixos/modules/module-list.nix
+@@ -206,6 +206,7 @@
+   ./programs/kbdlight.nix
+   ./programs/kclock.nix
+   ./programs/kdeconnect.nix
++  ./programs/kubeswitch.nix
+   ./programs/less.nix
+   ./programs/liboping.nix
+   ./programs/light.nix
+diff --git a/nixos/modules/programs/kubeswitch.nix b/nixos/modules/programs/kubeswitch.nix
+new file mode 100644
+index 00000000000000..25c580d6ebb38e
+--- /dev/null
++++ b/nixos/modules/programs/kubeswitch.nix
+@@ -0,0 +1,54 @@
++{ config, pkgs, lib, ... }:
++
++with lib;
++
++let
++  cfg = config.programs.kubeswitch;
++in
++  {
++    options = {
++      programs.kubeswitch = {
++        enable = mkEnableOption (lib.mdDoc "kubeswitch");
++
++        command_name = mkOption {
++          type = types.str;
++          default = "kswitch";
++          description = "The name of the command to use";
++        };
++
++        package = mkOption {
++          type = types.package;
++          default = pkgs.kubeswitch;
++          defaultText = literalExpression "pkgs.kubeswitch";
++          description = "The package to install for kubeswitch";
++        };
++      };
++    };
++
++    config =
++      let
++        shell_files = pkgs.stdenv.mkDerivation rec {
++          name = "kubeswitch-shell-files";
++          phases = [ "installPhase" ];
++          installPhase = ''
++            mkdir -p $out/share
++            for shell in bash zsh; do
++              ${cfg.package}/bin/switcher init $shell | sed 's/switch(/${cfg.command_name}(/' > $out/share/${cfg.command_name}_init.$shell
++              ${cfg.package}/bin/switcher --cmd ${cfg.command_name} completion $shell > $out/share/${cfg.command_name}_completion.$shell
++            done
++          '';
++        };
++      in
++      mkIf cfg.enable {
++        environment.systemPackages = [ cfg.package ];
++
++        programs.bash.interactiveShellInit = ''
++          source ${shell_files}/share/${cfg.command_name}_init.bash
++          source ${shell_files}/share/${cfg.command_name}_completion.bash
++        '';
++        programs.zsh.interactiveShellInit = ''
++          source ${shell_files}/share/${cfg.command_name}_init.zsh
++          source ${shell_files}/share/${cfg.command_name}_completion.zsh
++        '';
++    };
++  }
+diff --git a/pkgs/development/tools/kubeswitch/default.nix b/pkgs/development/tools/kubeswitch/default.nix
+index 76aeeb2e94c895..24dae366f166d0 100644
+--- a/pkgs/development/tools/kubeswitch/default.nix
++++ b/pkgs/development/tools/kubeswitch/default.nix
+@@ -1,4 +1,4 @@
+-{ lib, buildGoModule, fetchFromGitHub, testers, kubeswitch }:
++{ lib, buildGoModule, fetchFromGitHub, testers, kubeswitch, installShellFiles }:
+ 
+ buildGoModule rec {
+   pname = "kubeswitch";
+@@ -26,8 +26,14 @@ buildGoModule rec {
+     package = kubeswitch;
+   };
+ 
++  nativeBuildInputs = [ installShellFiles ];
++
+   postInstall = ''
+-    mv $out/bin/main $out/bin/switch
++    mv $out/bin/main $out/bin/switcher
++    for shell in bash zsh fish; do
++      $out/bin/switcher --cmd switcher  completion $shell > switcher.$shell
++      installShellCompletion --$shell switcher.$shell
++    done
+   '';
+ 
+   meta = with lib; {
+@@ -35,6 +41,6 @@ buildGoModule rec {
+     license = licenses.asl20;
+     homepage = "https://github.com/danielfoehrKn/kubeswitch";
+     maintainers = with maintainers; [ bryanasdev000 ];
+-    mainProgram = "switch";
++    mainProgram = "switcher";
+   };
+ }
